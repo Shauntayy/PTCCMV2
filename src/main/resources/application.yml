@@ -1,0 +1,9 @@
+spring:
+  datasource:
+    url: jdbc:postgresql://db.clcdmdefnrwguyfwrphp.supabase.co:5432/postgres?sslmode=require
+    username: postgres
+    password: P@ssw0rd1234ncshuatah
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
