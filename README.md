@@ -1,177 +1,138 @@
-PTCCMV2 🔐
+# PTCCMV2
 
-A full-stack authentication system built with Spring Boot + Supabase (PostgreSQL) + React.
-It provides secure user authentication using Supabase and JWT validation in Spring Boot.
+A full‑stack application combining a **Spring Boot** backend with a **React (Vite + TypeScript)** frontend. The backend exposes REST endpoints and connects to a PostgreSQL database; the frontend handles user interaction and communicates with the backend and a Supabase instance for authentication/storage.
 
-🧱 Tech Stack
+---
 
-Backend
+## 🔧 Technologies
 
-Java 17
+- **Backend**: Java 17, Spring Boot 4.x, Maven
+- **Database**: PostgreSQL (H2 for in‑memory/testing)
+- **Frontend**: React, TypeScript, Vite, ESLint
+- **Authentication/Storage**: Supabase
 
-Spring Boot
+---
 
-Spring Security
+## 🛠 Prerequisites
 
-Spring Data JPA
+1. **Java 17** (or later) installed and `JAVA_HOME` configured.
+2. **Maven** (the project includes the wrapper, so Maven is optional).
+3. **Node.js** (v16+) and **npm** or **yarn** for the frontend.
+4. A PostgreSQL database (local or remote) or a Supabase project for the backend.
 
-Supabase PostgreSQL
+---
 
-JWT Resource Server
+## ⚙️ Backend Setup
 
-Frontend
+1. Open a terminal in the workspace root.
 
-React (Vite)
+2. _(Optional)_ If you prefer to use a local database, update `src/main/resources/application.yml` with your connection parameters or supply them via environment variables:
 
-Supabase JS Client
+   ```yaml
+   spring:
+     datasource:
+       url: jdbc:postgresql://<HOST>:<PORT>/<DB_NAME>?sslmode=require
+       username: <USERNAME>
+       password: <PASSWORD>
+     jpa:
+       hibernate:
+         ddl-auto: update
+       show-sql: true
+   ```
 
-📦 Project Structure
-PTCCMV2/
-   ├── src/                → Spring Boot backend
-   └── ptccm-frontend/     → React frontend
-🚀 Prerequisites
+   Alternatively set `SPRING_DATASOURCE_URL`, `SPRING_DATASOURCE_USERNAME`, and `SPRING_DATASOURCE_PASSWORD` in your shell.
 
-Install these before running the project:
+3. Build and run the application:
 
-Tool	Version
-Java	17+
-Node.js	18+
-Maven	(wrapper included)
-Supabase	Active project
-🗄️ Database Setup (Supabase)
+   ```bash
+   # using the Maven wrapper
+   ./mvnw clean package          # compile & run tests
+   ./mvnw spring-boot:run        # start the backend on port 8080
+   ```
 
-Create a Supabase project
-https://supabase.com
+   or simply `mvn spring-boot:run` if you have Maven installed globally.
 
-Go to:
+4. The API base URL will be `http://localhost:8080` by default. You can browse the test controller at `/api/test` (see `TestController.java`).
 
-Project Settings → API
+5. Run tests with:
 
-Copy:
+   ```bash
+   ./mvnw test
+   ```
 
-Project URL
+---
 
-Anon Public Key
+## 🖥 Frontend Setup
 
-Go to:
+1. Navigate to the frontend folder:
 
-Settings → Database
+   ```bash
+   cd ptccm-frontend
+   ```
 
-Copy:
+2. Install dependencies:
 
-Host
+   ```bash
+   npm install    # or yarn install
+   ```
 
-Username
+3. Create a `.env` file (or copy the provided example) with the following variables:
 
-Password
+   ```dotenv
+   VITE_SUPABASE_URL=https://<your-project>.supabase.co
+   VITE_SUPABASE_ANON_KEY=<anon-key>
+   VITE_API_BASE_URL=http://localhost:8080   # matches backend
+   ```
 
-Disable email confirmation (for development)
+   Replace the Supabase URL and anon key with your project values. The frontend uses `VITE_` prefixes per Vite's convention.
 
-Authentication → Providers → Email
-Turn OFF "Confirm email"
-Ensure Email provider is ENABLED
-⚙️ Backend Setup (Spring Boot)
-1️⃣ Navigate to project root
-cd PTCCMV2
-2️⃣ Configure database connection
+4. Start the development server:
 
-Open:
+   ```bash
+   npm run dev     # or yarn dev
+   ```
 
-src/main/resources/application.yml
+   The app will be available at `http://localhost:5173` (default Vite port).
 
-Ensure it matches your Supabase credentials:
+5. Build for production:
 
-spring:
-  datasource:
-    url: jdbc:postgresql://<SUPABASE_HOST>:5432/postgres?sslmode=require
-    username: <USERNAME>
-    password: <PASSWORD>
+   ```bash
+   npm run build
+   npm run serve   # preview production build
+   ```
 
-  jpa:
-    hibernate:
-      ddl-auto: update
-    show-sql: true
+---
 
-  security:
-    oauth2:
-      resourceserver:
-        jwt:
-          jwk-set-uri: https://<PROJECT_REF>.supabase.co/auth/v1/.well-known/jwks.json
+## 🔄 Running Both Together
 
-Replace placeholders with your actual Supabase values.
+1. Start the backend first using the Maven commands above.
+2. In a second terminal, start the frontend dev server.
+3. The frontend will send requests to the backend using `VITE_API_BASE_URL`; ensure it matches the running backend.
 
-3️⃣ Run backend
-Windows
-mvnw.cmd spring-boot:run
-Mac / Linux
-./mvnw spring-boot:run
+You can also build the frontend and serve the static files from Spring Boot by copying the build output into the `resources/static` directory, though that is not configured by default.
 
-Backend will start at:
+---
 
-http://localhost:8080
-4️⃣ Test backend (optional)
+## 📁 Project Structure
 
-Open:
+```
+/           - Maven project root
+├── pom.xml
+├── src/main/java/com/ptccm/backend/   # Java source
+├── src/main/resources/application.yml  # config
+├── ptccm-frontend/                    # React app
+    ├── src/
+    └── .env                          # environment variables
+```
 
-http://localhost:8080/public/ping
+---
 
-You should see:
+## 📝 Notes
 
-pong
-⚛️ Frontend Setup (React)
+- The backend currently uses a Supabase‑hosted PostgreSQL instance as defined in `application.yml`. Change it if you need a local database.
+- The frontend is a vanilla Vite React template; adjust ESLint and TypeScript settings as needed.
+- For production deployment, secure your database credentials and keys (do **not** commit `.env` to source control).
 
-Open a new terminal.
+---
 
-1️⃣ Navigate to frontend folder
-cd ptccm-frontend
-2️⃣ Install dependencies
-npm install
-3️⃣ Create .env file
-
-Inside ptccm-frontend folder, create:
-
-.env
-
-Add:
-
-VITE_SUPABASE_URL=https://<your-project-ref>.supabase.co
-VITE_SUPABASE_ANON_KEY=<your-anon-key>
-VITE_API_BASE_URL=http://localhost:8080
-
-Restart frontend if .env is modified.
-
-4️⃣ Run frontend
-npm run dev
-
-Frontend runs at:
-
-http://localhost:5173
-🔐 How Login Works
-
-User signs up via Supabase authentication
-
-User logs in from React UI
-
-Supabase returns a JWT access token
-
-React sends token in request header:
-
-Authorization: Bearer <token>
-
-Spring Boot validates JWT using Supabase JWKS
-
-Protected endpoints require valid authentication
-
-🧪 Test Login in UI
-
-Open:
-
-http://localhost:5173
-
-Sign up with an email + password
-
-Sign in
-
-Token is stored in Supabase session
-
-Backend endpoints can now be accessed securely
+Happy coding! 🚀
