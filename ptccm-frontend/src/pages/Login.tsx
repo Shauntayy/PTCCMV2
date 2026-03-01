@@ -7,84 +7,83 @@ export default function Login() {
   const [password, setPassword] = useState("");
   const [msg, setMsg] = useState<string>("");
   const [loading, setLoading] = useState(false);
-  const [isSignUp, setIsSignUp] = useState(false);
 
   async function handleSignUp() {
     setMsg("");
     setLoading(true);
-    setIsSignUp(true);
     const { error } = await supabase.auth.signUp({ email, password });
     setLoading(false);
-    setIsSignUp(false);
     if (error) return setMsg(error.message);
     setMsg("Sign up success. Check your email if confirmation is enabled.");
-    setEmail("");
-    setPassword("");
   }
 
   async function handleSignIn() {
     setMsg("");
     setLoading(true);
-    setIsSignUp(false);
     const { data, error } = await supabase.auth.signInWithPassword({ email, password });
     setLoading(false);
-    const { data: sessionData } = await supabase.auth.getSession();
-    console.log("SESSION:", sessionData.session);
-    console.log("ACCESS TOKEN:", sessionData.session?.access_token);    
     if (error) return setMsg(error.message);
     setMsg(`Signed in as ${data.user.email}`);
   }
 
   return (
     <div className="login-container">
-      <div className="login-card">
-        <div className="login-header">
-          <h1 className="app-title">PTCCM</h1>
-          <p className="app-subtitle">Trading Collector</p>
-        </div>
+      <div className="login-card" role="main" aria-labelledby="login-title">
+        <header className="login-header">
+          <div className="brand">
+            <svg className="brand-logo" width="48" height="48" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+              <rect x="2" y="2" width="20" height="20" rx="6" fill="#667eea" />
+              <path d="M7 15l3-6 3 6 3-8" stroke="#fff" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+            <div>
+              <h1 id="login-title" className="app-title">PTCCM</h1>
+              <div className="app-subtitle">Trading Collector</div>
+            </div>
+          </div>
+        </header>
 
-        <div className="login-form">
+        <form className="login-form" onSubmit={(e) => { e.preventDefault(); handleSignIn(); }}>
+          <label className="visually-hidden" htmlFor="email">Email address</label>
           <div className="form-group">
             <input
+              id="email"
               className="form-input"
-              placeholder="Email Address"
+              placeholder="Email address"
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              onKeyPress={(e) => e.key === "Enter" && (isSignUp ? handleSignUp() : handleSignIn())}
+              required
+              aria-required="true"
             />
           </div>
 
+          <label className="visually-hidden" htmlFor="password">Password</label>
           <div className="form-group">
             <input
+              id="password"
               className="form-input"
               placeholder="Password"
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              onKeyPress={(e) => e.key === "Enter" && (isSignUp ? handleSignUp() : handleSignIn())}
+              required
+              aria-required="true"
             />
           </div>
 
-          <button
-            className="btn btn-primary"
-            onClick={handleSignIn}
-            disabled={loading}
-          >
-            {loading && !isSignUp ? "Signing in..." : "Sign In"}
-          </button>
+          <div className="actions">
+            <button className="btn btn-primary" type="submit" disabled={loading} aria-disabled={loading}>
+              {loading ? "Signing in..." : "Sign In"}
+            </button>
 
-          <button
-            className="btn btn-secondary"
-            onClick={handleSignUp}
-            disabled={loading}
-          >
-            {loading && isSignUp ? "Creating account..." : "Create Account"}
-          </button>
-        </div>
+            <button type="button" className="btn btn-ghost" onClick={handleSignUp} disabled={loading} aria-disabled={loading}>
+              Create Account
+            </button>
+          </div>
+        </form>
 
         {msg && (
-          <div className={`message ${msg.toLowerCase().includes("error") || msg.toLowerCase().includes("failed") ? "error" : "success"}`}>
+          <div className={`message ${msg.toLowerCase().includes("error") || msg.toLowerCase().includes("failed") ? "error" : "success"}`} role="status">
             {msg}
           </div>
         )}
