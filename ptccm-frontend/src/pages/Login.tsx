@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { supabase } from "../lib/supabaseClient";
 import "../styles/login.css";
 
@@ -7,6 +8,14 @@ export default function Login() {
   const [password, setPassword] = useState("");
   const [msg, setMsg] = useState<string>("");
   const [loading, setLoading] = useState(false);
+  const navigate = useNavigate();
+
+  // Redirect if already logged in
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session) navigate("/dashboard", { replace: true });
+    });
+  }, [navigate]);
 
   async function handleSignUp() {
     setMsg("");
@@ -14,16 +23,16 @@ export default function Login() {
     const { error } = await supabase.auth.signUp({ email, password });
     setLoading(false);
     if (error) return setMsg(error.message);
-    setMsg("Sign up success. Check your email if confirmation is enabled.");
+    setMsg("Sign up successful! Check your email to confirm, then sign in.");
   }
 
   async function handleSignIn() {
     setMsg("");
     setLoading(true);
-    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+    const { error } = await supabase.auth.signInWithPassword({ email, password });
     setLoading(false);
     if (error) return setMsg(error.message);
-    setMsg(`Signed in as ${data.user.email}`);
+    navigate("/dashboard", { replace: true });
   }
 
   return (
