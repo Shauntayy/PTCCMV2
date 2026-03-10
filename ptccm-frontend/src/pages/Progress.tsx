@@ -37,7 +37,7 @@ export default function Progress() {
 
       // Count distinct cards owned per set
       const ownedPerSet: Record<string, number> = {};
-      (collectionData ?? []).forEach((row: { card?: { card_set_id?: string } }) => {
+      ((collectionData ?? []) as Array<{ card?: { card_set_id?: string } }>).forEach((row) => {
         const setId = row.card?.card_set_id;
         if (setId) ownedPerSet[setId] = (ownedPerSet[setId] ?? 0) + 1;
       });

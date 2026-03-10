@@ -362,7 +362,7 @@ export default function Collection() {
                     <label className="block text-sm font-medium text-gray-700 mb-1">Game Series *</label>
                     <select
                       value={form.seriesId}
-                      onChange={e => f('seriesId', e.target.value) || f('setId', '')}
+                      onChange={e => { f('seriesId', e.target.value); f('setId', ''); }}
                       className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300"
                     >
                       <option value="">Select series…</option>
