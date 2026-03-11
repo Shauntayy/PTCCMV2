@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { supabase } from '../lib/supabaseClient';
+import { apiClient } from '../lib/apiClient';
 import { useAuth } from '../context/AuthContext';
 import type { Trade, TradeItem, UserCollection } from '../types';
 import { TRADE_STATUSES } from '../types';
@@ -33,31 +33,17 @@ export default function Trades() {
   const [submitting, setSubmitting] = useState(false);
 
   const fetchTrades = async () => {
-    const { data } = await supabase
-      .from('trades')
-      .select(`
-        id, title, trade_partner, status, notes, created_at, updated_at, user_id,
-        trade_items(id, card_name, direction, quantity, estimated_value, card_id)
-      `)
-      .order('created_at', { ascending: false });
-    setTrades((data ?? []) as unknown as (Trade & { trade_items?: TradeItem[] })[]);
+    if (!user) return;
+    const data = await apiClient.getTrades(user.id);
+    setTrades((data ?? []) as (Trade & { trade_items?: TradeItem[] })[]);
     setLoading(false);
   };
 
   useEffect(() => {
     if (!user) return;
-    fetchTrades();
-    // Load collection for offering dropdown
-    supabase
-      .from('user_collection')
-      .select(`
-        id, quantity, estimated_value, card_id, duplicate_action,
-        card:cards(id, name, rarity,
-          card_set:card_sets(name, game_series:game_series(name))
-        )
-      `)
-      .order('created_at', { ascending: false })
-      .then(({ data }) => setCollection((data ?? []) as unknown as UserCollection[]));
+    Promise.all([fetchTrades(), apiClient.getCollection(user.id)]).then(([, collectionData]) => {
+      setCollection((collectionData ?? []) as UserCollection[]);
+    });
   }, [user]);
 
   const openCreate = () => {
@@ -81,16 +67,18 @@ export default function Trades() {
     e.preventDefault();
     setSubmitting(true);
     try {
+      if (!user) return;
       if (editingTrade) {
-        await supabase
-          .from('trades')
-          .update({ ...tradeForm, title: tradeForm.title || null, trade_partner: tradeForm.trade_partner || null, notes: tradeForm.notes || null, updated_at: new Date().toISOString() })
-          .eq('id', editingTrade.id);
-      } else {
-        await supabase.from('trades').insert({
-          user_id: user!.id,
+        await apiClient.updateTrade(user.id, editingTrade.id, {
           title: tradeForm.title || null,
-          trade_partner: tradeForm.trade_partner || null,
+          tradePartner: tradeForm.trade_partner || null,
+          status: tradeForm.status,
+          notes: tradeForm.notes || null,
+        });
+      } else {
+        await apiClient.createTrade(user.id, {
+          title: tradeForm.title || null,
+          tradePartner: tradeForm.trade_partner || null,
           status: tradeForm.status,
           notes: tradeForm.notes || null,
         });
@@ -103,9 +91,14 @@ export default function Trades() {
   };
 
   const handleDeleteTrade = async (id: string) => {
+    if (!user) return;
     if (!confirm('Delete this trade and all its items?')) return;
-    await supabase.from('trades').delete().eq('id', id);
-    setTrades(prev => prev.filter(t => t.id !== id));
+    try {
+      await apiClient.deleteTrade(user.id, id);
+      setTrades(prev => prev.filter(t => t.id !== id));
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Failed to delete trade.');
+    }
   };
 
   const updateStatus = async (id: string, status: string) => {
@@ -140,35 +133,12 @@ export default function Trades() {
       if (!confirmed) return;
     }
 
-    await supabase.from('trades').update({ status, updated_at: new Date().toISOString() }).eq('id', id);
+    if (!user) return;
+    await apiClient.updateTradeStatus(user.id, id, status);
     setTrades(prev => prev.map(t => t.id === id ? { ...t, status } : t));
 
     if (isMarkingComplete && trade) {
-      const offeringItems = (trade.trade_items ?? []).filter(i => i.direction === 'offering' && i.card_id);
       const requestingItems = (trade.trade_items ?? []).filter(i => i.direction === 'requesting');
-
-      // Decrement / remove offered cards from collection
-      for (const item of offeringItems) {
-        const { data: row } = await supabase
-          .from('user_collection')
-          .select('id, quantity')
-          .eq('user_id', user!.id)
-          .eq('card_id', item.card_id)
-          .single();
-
-        if (row) {
-          const newQty = row.quantity - item.quantity;
-          if (newQty <= 0) {
-            await supabase.from('user_collection').delete().eq('id', row.id);
-          } else {
-            await supabase
-              .from('user_collection')
-              .update({ quantity: newQty, updated_at: new Date().toISOString() })
-              .eq('id', row.id);
-          }
-        }
-      }
-
       // Notify user about received cards that need to be added manually
       if (requestingItems.length > 0) {
         const cardList = requestingItems.map(i => `• ${i.card_name} ×${i.quantity}`).join('\n');
@@ -180,78 +150,37 @@ export default function Trades() {
       }
     }
 
-    if (isUndoingComplete && trade) {
-      const offeringItems = (trade.trade_items ?? []).filter(i => i.direction === 'offering' && i.card_id);
-
-      // Restore offered cards back to collection
-      for (const item of offeringItems) {
-        const { data: row } = await supabase
-          .from('user_collection')
-          .select('id, quantity')
-          .eq('user_id', user!.id)
-          .eq('card_id', item.card_id)
-          .maybeSingle();
-
-        if (row) {
-          // Row still exists — increment quantity back
-          await supabase
-            .from('user_collection')
-            .update({ quantity: row.quantity + item.quantity, updated_at: new Date().toISOString() })
-            .eq('id', row.id);
-        } else {
-          // Row was deleted when trade completed — re-insert it
-          await supabase.from('user_collection').insert({
-            user_id: user!.id,
-            card_id: item.card_id,
-            quantity: item.quantity,
-            estimated_value: item.estimated_value,
-            condition: 'Near Mint',
-            duplicate_action: 'keep',
-          });
-        }
-      }
+    if (isUndoingComplete) {
+      await apiClient.getCollection(user.id).then(data => setCollection((data ?? []) as UserCollection[]));
     }
   };
 
   const addTradeItem = async (tradeId: string) => {
+    if (!user) return;
     const form = itemForms[tradeId] ?? { ...EMPTY_ITEM };
     // Offering requires a collection card selection; requesting requires a name
     if (form.direction === 'offering' && !form.card_id) return;
     if (form.direction === 'requesting' && !form.card_name.trim()) return;
 
-    const { data, error } = await supabase
-      .from('trade_items')
-      .insert({
-        trade_id: tradeId,
-        card_id: form.direction === 'offering' ? form.card_id || null : null,
-        card_name: form.card_name.trim(),
-        direction: form.direction,
-        quantity: form.quantity,
-        estimated_value: form.estimated_value,
-      })
-      .select()
-      .single();
-    if (!error && data) {
-      setTrades(prev =>
-        prev.map(t =>
-          t.id === tradeId
-            ? { ...t, trade_items: [...(t.trade_items ?? []), data as TradeItem] }
-            : t
-        )
-      );
-      setItemForms(prev => ({ ...prev, [tradeId]: { ...EMPTY_ITEM } }));
-    }
+    await apiClient.addTradeItem(user.id, tradeId, {
+      cardId: form.direction === 'offering' ? form.card_id || null : null,
+      cardName: form.card_name.trim(),
+      direction: form.direction,
+      quantity: form.quantity,
+      estimatedValue: form.estimated_value,
+    });
+    setItemForms(prev => ({ ...prev, [tradeId]: { ...EMPTY_ITEM } }));
+    await fetchTrades();
   };
 
   const deleteTradeItem = async (tradeId: string, itemId: string) => {
-    await supabase.from('trade_items').delete().eq('id', itemId);
-    setTrades(prev =>
-      prev.map(t =>
-        t.id === tradeId
-          ? { ...t, trade_items: (t.trade_items ?? []).filter(i => i.id !== itemId) }
-          : t
-      )
-    );
+    if (!user) return;
+    try {
+      await apiClient.deleteTradeItem(user.id, tradeId, itemId);
+      await fetchTrades();
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Failed to delete trade item.');
+    }
   };
 
   const totalProposed = trades.filter(t => t.status === 'proposed').length;

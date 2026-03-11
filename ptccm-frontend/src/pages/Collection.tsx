@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { supabase } from '../lib/supabaseClient';
+import { apiClient } from '../lib/apiClient';
 import { useAuth } from '../context/AuthContext';
 import type { GameSeries, CardSet, UserCollection } from '../types';
 import { RARITIES, CONDITIONS, DUPLICATE_ACTIONS } from '../types';
@@ -53,35 +53,25 @@ export default function Collection() {
   const [filterSeries, setFilterSeries] = useState('');
 
   const fetchCollection = useCallback(async () => {
-    const { data } = await supabase
-      .from('user_collection')
-      .select(`
-        id, quantity, estimated_value, condition, duplicate_action, notes,
-        created_at, updated_at, card_id, user_id,
-        card:cards(
-          id, name, card_number, card_type, rarity,
-          card_set:card_sets(
-            id, name, total_cards,
-            game_series:game_series(id, name)
-          )
-        )
-      `)
-      .order('created_at', { ascending: false });
-    setItems((data ?? []) as unknown as UserCollection[]);
-    setLoading(false);
-  }, []);
+    if (!user) return;
+    try {
+      const data = await apiClient.getCollection(user.id);
+      setItems((data ?? []) as UserCollection[]);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to load collection.');
+    } finally {
+      setLoading(false);
+    }
+  }, [user]);
 
   useEffect(() => {
     if (!user) return;
-    fetchCollection();
-    supabase.from('game_series').select('*').order('name').then(({ data }) =>
-      setGameSeries((data ?? []) as GameSeries[])
+    Promise.all([fetchCollection(), apiClient.getGameSeries(), apiClient.getCardSets()]).then(
+      ([, series, sets]) => {
+        setGameSeries((series ?? []) as GameSeries[]);
+        setCardSets((sets ?? []) as CardSet[]);
+      }
     );
-    supabase
-      .from('card_sets')
-      .select('*, game_series:game_series(id, name)')
-      .order('name')
-      .then(({ data }) => setCardSets((data ?? []) as unknown as CardSet[]));
   }, [user, fetchCollection]);
 
   const filteredSets = cardSets.filter(
@@ -110,9 +100,14 @@ export default function Collection() {
   };
 
   const handleDelete = async (id: string) => {
+    if (!user) return;
     if (!confirm('Remove this card from your collection?')) return;
-    await supabase.from('user_collection').delete().eq('id', id);
-    setItems(prev => prev.filter(i => i.id !== id));
+    try {
+      await apiClient.deleteCollectionItem(user.id, id);
+      setItems(prev => prev.filter(i => i.id !== id));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to delete item.');
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -121,95 +116,33 @@ export default function Collection() {
     setError('');
 
     try {
+      if (!user) throw new Error('You must be signed in.');
+
       if (editingItem) {
-        const { error: err } = await supabase
-          .from('user_collection')
-          .update({
-            quantity: form.quantity,
-            estimated_value: form.estimatedValue,
-            condition: form.condition,
-            duplicate_action: form.duplicateAction,
-            notes: form.notes || null,
-            updated_at: new Date().toISOString(),
-          })
-          .eq('id', editingItem.id);
-        if (err) throw err;
+        await apiClient.updateCollectionItem(user.id, editingItem.id, {
+          quantity: form.quantity,
+          estimatedValue: form.estimatedValue,
+          condition: form.condition,
+          duplicateAction: form.duplicateAction,
+          notes: form.notes || null,
+        });
       } else {
-        // Resolve game series
-        let seriesId = form.seriesId;
-        if (seriesId === '__new__') {
-          if (!form.newSeriesName.trim()) throw new Error('Game series name is required.');
-          const { data, error: err } = await supabase
-            .from('game_series')
-            .insert({ name: form.newSeriesName.trim() })
-            .select()
-            .single();
-          if (err) throw err;
-          seriesId = data.id;
-          setGameSeries(prev => [...prev, data as GameSeries]);
-        }
-        if (!seriesId) throw new Error('Please select a game series.');
-
-        // Resolve card set
-        let setId = form.setId;
-        if (setId === '__new__') {
-          if (!form.newSetName.trim()) throw new Error('Card set name is required.');
-          const { data, error: err } = await supabase
-            .from('card_sets')
-            .insert({
-              game_series_id: seriesId,
-              name: form.newSetName.trim(),
-              total_cards: form.newSetTotalCards ? parseInt(form.newSetTotalCards) : null,
-            })
-            .select()
-            .single();
-          if (err) throw err;
-          setId = data.id;
-          setCardSets(prev => [...prev, data as unknown as CardSet]);
-        }
-        if (!setId) throw new Error('Please select a card set.');
-        if (!form.cardName.trim()) throw new Error('Card name is required.');
-
-        // Find or create card
-        const { data: existingCard } = await supabase
-          .from('cards')
-          .select('id')
-          .eq('card_set_id', setId)
-          .eq('name', form.cardName.trim())
-          .maybeSingle();
-
-        let cardId = existingCard?.id;
-        if (!cardId) {
-          const { data: newCard, error: err } = await supabase
-            .from('cards')
-            .insert({
-              card_set_id: setId,
-              name: form.cardName.trim(),
-              card_number: form.cardNumber.trim() || null,
-              card_type: form.cardType.trim() || null,
-              rarity: form.rarity || null,
-            })
-            .select()
-            .single();
-          if (err) throw err;
-          cardId = newCard.id;
-        }
-
-        // Upsert user_collection
-        const { error: err } = await supabase.from('user_collection').upsert(
-          {
-            user_id: user!.id,
-            card_id: cardId,
-            quantity: form.quantity,
-            estimated_value: form.estimatedValue,
-            condition: form.condition,
-            duplicate_action: form.duplicateAction,
-            notes: form.notes || null,
-            updated_at: new Date().toISOString(),
-          },
-          { onConflict: 'user_id,card_id' }
-        );
-        if (err) throw err;
+        await apiClient.upsertCollection(user.id, {
+          seriesId: form.seriesId,
+          newSeriesName: form.newSeriesName,
+          setId: form.setId,
+          newSetName: form.newSetName,
+          newSetTotalCards: form.newSetTotalCards ? parseInt(form.newSetTotalCards) : null,
+          cardName: form.cardName,
+          cardNumber: form.cardNumber,
+          cardType: form.cardType,
+          rarity: form.rarity,
+          quantity: form.quantity,
+          estimatedValue: form.estimatedValue,
+          condition: form.condition,
+          duplicateAction: form.duplicateAction,
+          notes: form.notes || null,
+        });
       }
 
       await fetchCollection();
@@ -243,6 +176,10 @@ export default function Collection() {
           <Plus size={16} /> Add Card
         </button>
       </div>
+
+      {error && !showModal && (
+        <p className="text-sm text-red-600 bg-red-50 rounded-lg px-3 py-2">{error}</p>
+      )}
 
       {/* Series filter chips */}
       {uniqueSeries.length > 1 && (

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { supabase } from '../lib/supabaseClient';
+import { apiClient } from '../lib/apiClient';
 import { useAuth } from '../context/AuthContext';
 import type { GameSeries, CardSet } from '../types';
 import { BarChart3 } from 'lucide-react';
@@ -24,15 +24,12 @@ export default function Progress() {
 
   useEffect(() => {
     if (!user) return;
+    const userId = user.id;
+
     async function fetchData() {
-      const [{ data: setsData }, { data: collectionData }] = await Promise.all([
-        supabase
-          .from('card_sets')
-          .select('id, name, total_cards, game_series_id, game_series:game_series(id, name)')
-          .order('name'),
-        supabase
-          .from('user_collection')
-          .select('card:cards(card_set_id)'),
+      const [setsData, collectionData] = await Promise.all([
+        apiClient.getCardSets(),
+        apiClient.getCollection(userId),
       ]);
 
       // Count distinct cards owned per set
@@ -44,8 +41,7 @@ export default function Progress() {
 
       // Group by series
       const seriesMap: Record<string, SeriesGroup> = {};
-      (setsData ?? []).forEach((set: unknown) => {
-        const s = set as CardSet & { game_series: GameSeries };
+      ((setsData ?? []) as Array<CardSet & { game_series: GameSeries }>).forEach((s) => {
         const series = s.game_series!;
         if (!seriesMap[series.id]) {
           seriesMap[series.id] = { series, sets: [], totalOwned: 0, totalCards: 0 };

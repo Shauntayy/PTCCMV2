@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { supabase } from '../lib/supabaseClient';
+import { apiClient } from '../lib/apiClient';
 import { useAuth } from '../context/AuthContext';
 import type { UserCollection, Trade } from '../types';
 import { Library, Copy, ArrowLeftRight, TrendingUp, Layers } from 'lucide-react';
@@ -34,25 +34,15 @@ export default function Dashboard() {
 
   useEffect(() => {
     if (!user) return;
+    const userId = user.id;
+
     async function fetchData() {
-      const [{ data: collection }, { data: trades }] = await Promise.all([
-        supabase
-          .from('user_collection')
-          .select(`
-            id, quantity, estimated_value, duplicate_action, created_at,
-            card:cards(
-              id, name, rarity,
-              card_set:card_sets(
-                id, name,
-                game_series:game_series(id, name)
-              )
-            )
-          `)
-          .order('created_at', { ascending: false }),
-        supabase.from('trades').select('id, status'),
+      const [collection, trades] = await Promise.all([
+        apiClient.getCollection(userId),
+        apiClient.getTrades(userId),
       ]);
 
-      const items = (collection ?? []) as unknown as UserCollection[];
+      const items = (collection ?? []) as UserCollection[];
       const tradeList = (trades ?? []) as Trade[];
 
       const totalCards = items.reduce((s, i) => s + i.quantity, 0);

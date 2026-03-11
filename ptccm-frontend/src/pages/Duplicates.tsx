@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { supabase } from '../lib/supabaseClient';
+import { apiClient } from '../lib/apiClient';
 import { useAuth } from '../context/AuthContext';
 import type { UserCollection } from '../types';
 import { DUPLICATE_ACTIONS } from '../types';
@@ -16,26 +16,16 @@ export default function Duplicates() {
   }, [user]);
 
   const fetchDuplicates = async () => {
-    const { data } = await supabase
-      .from('user_collection')
-      .select(`
-        id, quantity, estimated_value, condition, duplicate_action, notes,
-        card:cards(
-          id, name, card_number, rarity,
-          card_set:card_sets(id, name, game_series:game_series(id, name))
-        )
-      `)
-      .gt('quantity', 1)
-      .order('quantity', { ascending: false });
-    setItems((data ?? []) as unknown as UserCollection[]);
+    if (!user) return;
+    const data = await apiClient.getCollection(user.id);
+    const duplicates = (data as UserCollection[]).filter(item => item.quantity > 1);
+    setItems(duplicates);
     setLoading(false);
   };
 
   const updateAction = async (id: string, action: string) => {
-    await supabase
-      .from('user_collection')
-      .update({ duplicate_action: action, updated_at: new Date().toISOString() })
-      .eq('id', id);
+    if (!user) return;
+    await apiClient.updateDuplicateAction(user.id, id, action);
     setItems(prev => prev.map(i => i.id === id ? { ...i, duplicate_action: action } : i));
   };
 
