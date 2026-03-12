@@ -36,7 +36,7 @@ export default function Duplicates() {
   const forSale = items.filter(i => i.duplicate_action === 'for_sale').length;
 
   return (
-    <div className="p-8 space-y-6">
+    <div className="p-4 md:p-8 space-y-6">
       <div>
         <h1 className="text-2xl font-bold text-gray-900">Duplicates</h1>
         <p className="text-gray-500 mt-1">Cards you own more than one copy of</p>

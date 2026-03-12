@@ -28,8 +28,8 @@ export default function Layout() {
 
   return (
     <div className="flex min-h-screen bg-gray-50">
-      {/* Sidebar */}
-      <aside className="w-64 bg-slate-900 flex flex-col fixed inset-y-0 left-0 z-20">
+      {/* Sidebar — desktop only */}
+      <aside className="hidden md:flex w-64 bg-slate-900 flex-col fixed inset-y-0 left-0 z-20">
         {/* Brand */}
         <div className="flex items-center gap-3 px-6 py-5 border-b border-slate-700">
           <div className="bg-indigo-500 rounded-xl p-2 flex items-center justify-center">
@@ -78,9 +78,34 @@ export default function Layout() {
       </aside>
 
       {/* Main Content */}
-      <main className="ml-64 flex-1 min-h-screen">
+      <main className="md:ml-64 flex-1 min-h-screen pb-16 md:pb-0">
         <Outlet />
       </main>
+
+      {/* Bottom nav — mobile only */}
+      <nav className="md:hidden fixed bottom-0 inset-x-0 z-20 bg-slate-900 border-t border-slate-700 flex items-center justify-around h-16">
+        {navItems.map(({ to, label, Icon }) => (
+          <NavLink
+            key={to}
+            to={to}
+            className={({ isActive }) =>
+              `flex flex-col items-center gap-0.5 px-2 py-1 rounded-lg text-xs font-medium transition-colors ${
+                isActive ? 'text-indigo-400' : 'text-slate-400'
+              }`
+            }
+          >
+            <Icon size={22} />
+            <span>{label}</span>
+          </NavLink>
+        ))}
+        <button
+          onClick={handleSignOut}
+          className="flex flex-col items-center gap-0.5 px-2 py-1 rounded-lg text-xs font-medium text-slate-400 transition-colors"
+        >
+          <LogOut size={22} />
+          <span>Sign Out</span>
+        </button>
+      </nav>
     </div>
   );
 }

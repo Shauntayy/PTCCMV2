@@ -87,7 +87,7 @@ export default function Progress() {
   };
 
   return (
-    <div className="p-8 space-y-6">
+    <div className="p-4 md:p-8 space-y-6">
       <div>
         <h1 className="text-2xl font-bold text-gray-900">Progress</h1>
         <p className="text-gray-500 mt-1">Track your set completion across all game series</p>

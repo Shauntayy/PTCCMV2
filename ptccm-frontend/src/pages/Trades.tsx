@@ -187,8 +187,8 @@ export default function Trades() {
   const totalCompleted = trades.filter(t => t.status === 'completed').length;
 
   return (
-    <div className="p-8 space-y-6">
-      <div className="flex items-center justify-between">
+    <div className="p-4 md:p-8 space-y-6">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Trades</h1>
           <p className="text-gray-500 mt-1">Plan and track card trade proposals</p>
@@ -202,7 +202,7 @@ export default function Trades() {
       </div>
 
       {!loading && trades.length > 0 && (
-        <div className="grid grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           {[
             { label: 'Total Trades', value: trades.length },
             { label: 'Active (Proposed)', value: totalProposed },
