@@ -113,6 +113,42 @@ You can also build the frontend and serve the static files from Spring Boot by c
 
 ---
 
+## ✅ Backend Testing
+
+The backend now includes three testing layers:
+
+- **Unit tests** for service-layer business logic such as collection upserts, trade status transitions, and trade item deletion behavior.
+- **API tests** for REST endpoints, request/response handling, and exception mapping.
+- **Integration tests** for PostgreSQL-backed repository queries using **Testcontainers**.
+
+### Test Files
+
+- `src/test/java/com/ptccm/backend/service/DataApiServiceImplTest.java`
+- `src/test/java/com/ptccm/backend/controller/DataApiControllerTest.java`
+- `src/test/java/com/ptccm/backend/repository/JdbcDataRepositoryIntegrationTest.java`
+
+### Running Tests
+
+Run the backend test suite with:
+
+```bash
+./mvnw test
+```
+
+On Windows:
+
+```powershell
+.\mvnw.cmd test
+```
+
+### Notes
+
+- Unit and API tests run without extra services.
+- Integration tests use PostgreSQL containers and require **Docker Desktop** (or another working Docker runtime).
+- If Docker is unavailable, the integration tests are skipped automatically rather than failing the entire build.
+
+---
+
 ## 📁 Project Structure
 
 ```
