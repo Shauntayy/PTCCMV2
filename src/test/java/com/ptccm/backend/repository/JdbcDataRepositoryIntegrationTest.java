@@ -16,6 +16,7 @@ import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -53,13 +54,13 @@ class JdbcDataRepositoryIntegrationTest {
     void findCollectionRowsByUserReturnsJoinedCardSetAndSeriesData() {
         String userId = "00000000-0000-0000-0000-000000000001";
 
-        jdbcTemplate.update("insert into game_series(id, name) values (?, ?)", "10000000-0000-0000-0000-000000000001", "Pokemon");
+        jdbcTemplate.update("insert into game_series(id, name) values (?, ?)", UUID.fromString("10000000-0000-0000-0000-000000000001"), "Pokemon");
         jdbcTemplate.update("insert into card_sets(id, game_series_id, name, total_cards) values (?, ?, ?, ?)",
-                "20000000-0000-0000-0000-000000000001", "10000000-0000-0000-0000-000000000001", "151", 165);
+                UUID.fromString("20000000-0000-0000-0000-000000000001"), UUID.fromString("10000000-0000-0000-0000-000000000001"), "151", 165);
         jdbcTemplate.update("insert into cards(id, card_set_id, name, card_number, card_type, rarity) values (?, ?, ?, ?, ?, ?)",
-                "30000000-0000-0000-0000-000000000001", "20000000-0000-0000-0000-000000000001", "Charizard ex", "006/165", "Pokemon", "Ultra Rare");
+                UUID.fromString("30000000-0000-0000-0000-000000000001"), UUID.fromString("20000000-0000-0000-0000-000000000001"), "Charizard ex", "006/165", "Pokemon", "Ultra Rare");
         jdbcTemplate.update("insert into user_collection(id, user_id, card_id, quantity, estimated_value, condition, duplicate_action, notes) values (?, ?, ?, ?, ?, ?, ?, ?)",
-                "40000000-0000-0000-0000-000000000001", userId, "30000000-0000-0000-0000-000000000001", 2, BigDecimal.valueOf(19.99), "Near Mint", "for_trade", "Fresh pull");
+                UUID.fromString("40000000-0000-0000-0000-000000000001"), UUID.fromString(userId), UUID.fromString("30000000-0000-0000-0000-000000000001"), 2, BigDecimal.valueOf(19.99), "Near Mint", "for_trade", "Fresh pull");
 
         List<Map<String, Object>> rows = repository.findCollectionRowsByUser(userId);
 
@@ -76,13 +77,13 @@ class JdbcDataRepositoryIntegrationTest {
         String cardId = "30000000-0000-0000-0000-000000000001";
         String collectionId = "40000000-0000-0000-0000-000000000001";
 
-        jdbcTemplate.update("insert into game_series(id, name) values (?, ?)", "10000000-0000-0000-0000-000000000001", "Pokemon");
+        jdbcTemplate.update("insert into game_series(id, name) values (?, ?)", UUID.fromString("10000000-0000-0000-0000-000000000001"), "Pokemon");
         jdbcTemplate.update("insert into card_sets(id, game_series_id, name, total_cards) values (?, ?, ?, ?)",
-                "20000000-0000-0000-0000-000000000001", "10000000-0000-0000-0000-000000000001", "151", 165);
+                UUID.fromString("20000000-0000-0000-0000-000000000001"), UUID.fromString("10000000-0000-0000-0000-000000000001"), "151", 165);
         jdbcTemplate.update("insert into cards(id, card_set_id, name) values (?, ?, ?)",
-                cardId, "20000000-0000-0000-0000-000000000001", "Pikachu");
+                UUID.fromString(cardId), UUID.fromString("20000000-0000-0000-0000-000000000001"), "Pikachu");
         jdbcTemplate.update("insert into user_collection(id, user_id, card_id, quantity, estimated_value, condition, duplicate_action, notes) values (?, ?, ?, ?, ?, ?, ?, ?)",
-                collectionId, userId, cardId, 1, BigDecimal.ONE, "Near Mint", "keep", "Old");
+                UUID.fromString(collectionId), UUID.fromString(userId), UUID.fromString(cardId), 1, BigDecimal.ONE, "Near Mint", "keep", "Old");
 
         String returnedId = repository.upsertCollectionAndReturnId(
                 userId,
@@ -112,13 +113,13 @@ class JdbcDataRepositoryIntegrationTest {
         String userId = "00000000-0000-0000-0000-000000000001";
         String cardId = "30000000-0000-0000-0000-000000000001";
 
-        jdbcTemplate.update("insert into game_series(id, name) values (?, ?)", "10000000-0000-0000-0000-000000000001", "Pokemon");
+        jdbcTemplate.update("insert into game_series(id, name) values (?, ?)", UUID.fromString("10000000-0000-0000-0000-000000000001"), "Pokemon");
         jdbcTemplate.update("insert into card_sets(id, game_series_id, name, total_cards) values (?, ?, ?, ?)",
-                "20000000-0000-0000-0000-000000000001", "10000000-0000-0000-0000-000000000001", "151", 165);
+                UUID.fromString("20000000-0000-0000-0000-000000000001"), UUID.fromString("10000000-0000-0000-0000-000000000001"), "151", 165);
         jdbcTemplate.update("insert into cards(id, card_set_id, name) values (?, ?, ?)",
-                cardId, "20000000-0000-0000-0000-000000000001", "Bulbasaur");
+                UUID.fromString(cardId), UUID.fromString("20000000-0000-0000-0000-000000000001"), "Bulbasaur");
         jdbcTemplate.update("insert into user_collection(id, user_id, card_id, quantity, estimated_value, condition, duplicate_action) values (?, ?, ?, ?, ?, ?, ?)",
-                "40000000-0000-0000-0000-000000000001", userId, cardId, 1, BigDecimal.valueOf(5.00), "Near Mint", "keep");
+                UUID.fromString("40000000-0000-0000-0000-000000000001"), UUID.fromString(userId), UUID.fromString(cardId), 1, BigDecimal.valueOf(5.00), "Near Mint", "keep");
 
         repository.restoreCollectionCard(userId, cardId, 2, BigDecimal.valueOf(7.50));
 
