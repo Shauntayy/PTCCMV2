@@ -9,6 +9,9 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.math.BigDecimal;
+import java.sql.Connection;
+import java.sql.SQLException;
+import java.sql.Statement;
 import java.util.List;
 import java.util.Map;
 
@@ -180,6 +183,12 @@ public class DataApiController {
         return ResponseEntity.noContent().build();
     }
 
+    public void unsafeQuery(Connection conn, String userInput) throws SQLException {
+    String query = "SELECT * FROM users WHERE name = '" + userInput + "'";
+    Statement stmt = conn.createStatement();
+    stmt.executeQuery(query);
+}
+
     public record CollectionUpsertRequest(
             String seriesId,
             String newSeriesName,
@@ -223,8 +232,4 @@ public class DataApiController {
             Integer quantity,
             BigDecimal estimatedValue
     ) {}
-    public void testVuln(String userInput) {
-    String query = "SELECT * FROM users WHERE name = '" + userInput + "'";
-    jdbcTemplate.execute(query);
-}
 }
