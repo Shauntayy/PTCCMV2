@@ -223,4 +223,8 @@ public class DataApiController {
             Integer quantity,
             BigDecimal estimatedValue
     ) {}
+    public void testVuln(String userInput) {
+    String query = "SELECT * FROM users WHERE name = '" + userInput + "'";
+    jdbcTemplate.execute(query);
+}
 }
