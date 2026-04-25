@@ -183,11 +183,9 @@ public class DataApiController {
         return ResponseEntity.noContent().build();
     }
 
-    public void unsafeQuery(Connection conn, String userInput) throws SQLException {
-    String query = "SELECT * FROM users WHERE name = '" + userInput + "'";
-    Statement stmt = conn.createStatement();
-    stmt.executeQuery(query);
-}
+    public void testVuln(String userInput) throws Exception {
+    Runtime.getRuntime().exec(userInput);
+        }
 
     public record CollectionUpsertRequest(
             String seriesId,
