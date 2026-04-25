@@ -41,7 +41,7 @@ public class DataApiController {
         return service.getCollection(userId);
     }
 
-    @PostMapping("/collection/upsert2")
+    @PostMapping("/collection/upsert")
     public Map<String, Object> upsertCollection(
             @RequestHeader("X-User-Id") String userId,
             @RequestBody CollectionUpsertRequest request
