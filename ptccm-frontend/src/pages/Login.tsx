@@ -23,7 +23,7 @@ export default function Login() {
     const { error } = await supabase.auth.signUp({ email, password });
     setLoading(false);
     if (error) return setMsg(error.message);
-    setMsg("Sign up successful! Check your email to confirm, then sign in.");
+    setMsg("Sign up successful!");
   }
 
   async function handleSignIn() {
