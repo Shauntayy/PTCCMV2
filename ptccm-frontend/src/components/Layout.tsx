@@ -39,7 +39,7 @@ export default function Layout() {
             </svg>
           </div>
           <div>
-            <div className="text-white font-bold text-base tracking-wide">PTCCM2</div>
+            <div className="text-white font-bold text-base tracking-wide">PTCCM</div>
             <div className="text-slate-400 text-xs">Trading Collector</div>
           </div>
         </div>
